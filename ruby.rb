@@ -8,7 +8,7 @@ class Hangman
 
   def initialize
     get_words('google-10000-english-no-swears.txt')
-    @word_to_guess = WORDS.sample.chomp
+    select_word
   end
 
   def get_words(file)
@@ -19,20 +19,49 @@ class Hangman
       WORDS << word
     end
   end
+
+  def select_word
+    WORDS.sample.chomp
+  end
+
 end
 
 # class for gameplay
 class Gameplay
-  attr_accessor :hangman, :game_over, :turn_number
+  attr_accessor :hangman, :game_over, :guesses_left
 
   def initialize
-    @turn_number = 0
+    @guesses_left = 5
     @game_over = false
     @hangman = Hangman.new
+    play_game
+  end
+
+  def play_game
+    until @game_over
+      computer_word = hangman.select_word
+      create_board(computer_word)
+      player_guess
+      @game_over = true
+
+    end
+  end
+
+  def create_board(computer_word)
+    p "_" * computer_word.length
+    p "You have #{guesses_left} guesses left"
+  end
+
+  def player_guess
+    p "What is your guess?"
+    player_input = gets.chomp.downcase
+
   end
 end
 
-game = Gameplay.new
-p game.hangman.word_to_guess
+Gameplay.new
+
+# game = Gameplay.new
+# p game.hangman.word_to_guess
 
 
