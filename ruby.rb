@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+require 'yaml'
+
 
 WORDS = []
 
@@ -28,40 +30,69 @@ end
 
 # class for gameplay
 class Gameplay
-  attr_accessor :hangman, :game_over, :guesses_left
+  attr_accessor :hangman, :game_over, :guesses_left, :computer_word, :board, :guessed
 
   def initialize
     @guesses_left = 5
+    @guessed = []
     @game_over = false
     @hangman = Hangman.new
+    @computer_word = hangman.select_word
+    @board = '_' * computer_word.length
     play_game
   end
 
   def play_game
     until @game_over
-      computer_word = hangman.select_word
-      create_board(computer_word)
-      player_guess
-      @game_over = true
-
+      p computer_word
+      p board
+      check_for_save
+      player_input = player_guess
+      guessed << player_input
+      p guessed
+      compare_guess_to_word(player_input, computer_word)
+      turn_countdown(guesses_left)
     end
   end
 
-  def create_board(computer_word)
-    p "_" * computer_word.length
-    p "You have #{guesses_left} guesses left"
+  def check_for_save
+    p "Press 's' to save the game"
+    saving = gets.chomp
+    return unless saving == 's'
+
+    output = File.new('hangman.yml', 'w')
+    output.puts YAML.dump(Gameplay)
+    output.close
+    @game_over == true
   end
 
   def player_guess
-    p "What is your guess?"
-    player_input = gets.chomp.downcase
+    p 'What is your guess?'
+    gets.chomp.downcase
+  end
+
+  def compare_guess_to_word(player_input, computer_word)
+    return unless computer_word.include? player_input
+
+    puts 'Thats in there.'
+
+    computer_word.split('').each_with_index do |letter, index|
+      next unless player_input == letter
+
+      board.split('')
+      board[index] = letter
+      p board
+    end
+  end
+
+  def turn_countdown(guesses_left)
+    p @guesses_left += -1
+    return unless guesses_left.zero?
+
+    @game_over = true
 
   end
 end
 
 Gameplay.new
-
-# game = Gameplay.new
-# p game.hangman.word_to_guess
-
 
