@@ -1,16 +1,109 @@
 # frozen_string_literal: true
-require 'yaml'
 
+require 'yaml'
 
 WORDS = []
 
+# module for saving and loading game states
+module SaveLoad
+  def check_for_load
+    p 'press (L) to load a game'
+    loading = gets.chomp
+    return unless loading == 'L'
+
+    yml = YAML.load_file('hangman.yml')
+    @word = yml[:word_to_guess]
+    @board = yml[:board]
+    @guesses_left = yml[:guesses_left]
+    p @word
+    p @board
+    p @guesses_left
+  end
+
+  def check_for_save
+    p "Press 's' to save the game"
+    saving = gets.chomp
+    return unless saving == 's'
+
+    p 'saving'
+    output = File.open('hangman.yml', 'w')
+    output.puts YAML.dump(@game_info)
+    output.close
+  end
+end
+
+# module for playing the game
+module Game
+  def player_guess
+    p 'What is your guess?'
+    gets.chomp.downcase
+  end
+
+  def noload
+    @word = @game_info[:word_to_guess]
+    @board = @game_info[:board]
+    @guesses_left = @game_info[:guesses_left]
+    p @word
+    p @board
+    p @guesses_left
+  end
+
+  def compare_guess_to_word
+    player_input = player_guess
+    p @word
+    return unless @word.include? player_input
+
+    puts 'Thats in there.'
+
+    @word.split('').each_with_index do |letter, index|
+      next unless player_input == letter
+
+      @board.split('')
+      @board[index] = letter
+      p @board 
+      @game_info[:board] = @board
+      @game_info[:word_to_guess] = @word
+      @game_info[:guesses_left] = @guesses_left
+    end
+  end
+
+  def turn_countdown
+    p @guesses_left += -1
+    return unless @guesses_left.zero?
+
+    @game_over = true
+  end
+
+  def play_round
+    check_for_load
+    noload
+    until @game_over
+      check_for_save
+      compare_guess_to_word
+      @game_info[:guesses_left] = @guesses_left
+      turn_countdown
+    end
+  end
+end
+
 # class for computer
 class Hangman
-  attr_reader :word_to_guess
+  include SaveLoad
+  include Game
+
+  attr_accessor :game_info
 
   def initialize
     get_words('google-10000-english-no-swears.txt')
-    select_word
+    word_to_guess = select_word
+    board = '_' * word_to_guess.length
+    @game_info = {}
+    guesses_left = 10
+    @game_info.store(:word_to_guess, word_to_guess)
+    @game_info.store(:guesses_left, guesses_left)
+    @game_info.store(:board, board)
+    @game_info.store(:game_over, false)
+    p @game_info
   end
 
   def get_words(file)
@@ -25,74 +118,7 @@ class Hangman
   def select_word
     WORDS.sample.chomp
   end
-
 end
 
-# class for gameplay
-class Gameplay
-  attr_accessor :hangman, :game_over, :guesses_left, :computer_word, :board, :guessed
-
-  def initialize
-    @guesses_left = 5
-    @guessed = []
-    @game_over = false
-    @hangman = Hangman.new
-    @computer_word = hangman.select_word
-    @board = '_' * computer_word.length
-    play_game
-  end
-
-  def play_game
-    until @game_over
-      p computer_word
-      p board
-      check_for_save
-      player_input = player_guess
-      guessed << player_input
-      p guessed
-      compare_guess_to_word(player_input, computer_word)
-      turn_countdown(guesses_left)
-    end
-  end
-
-  def check_for_save
-    p "Press 's' to save the game"
-    saving = gets.chomp
-    return unless saving == 's'
-
-    output = File.new('hangman.yml', 'w')
-    output.puts YAML.dump(Gameplay)
-    output.close
-    @game_over == true
-  end
-
-  def player_guess
-    p 'What is your guess?'
-    gets.chomp.downcase
-  end
-
-  def compare_guess_to_word(player_input, computer_word)
-    return unless computer_word.include? player_input
-
-    puts 'Thats in there.'
-
-    computer_word.split('').each_with_index do |letter, index|
-      next unless player_input == letter
-
-      board.split('')
-      board[index] = letter
-      p board
-    end
-  end
-
-  def turn_countdown(guesses_left)
-    p @guesses_left += -1
-    return unless guesses_left.zero?
-
-    @game_over = true
-
-  end
-end
-
-Gameplay.new
-
+game = Hangman.new
+game.play_round
